@@ -55,6 +55,19 @@ export default function Dashboard() {
   const [manualReason, setManualReason] = useState('');
   const [manualAmount, setManualAmount] = useState('');
   const [showBalancePopup, setShowBalancePopup] = useState(false);
+  const [fixedIncomes, setFixedIncomes] = useState([]); // 고정 수입 목록 저장
+
+  // 고정 수입 모달 상태
+  const [showFixedIncomeModal, setShowFixedIncomeModal] = useState(false);
+  const [fixedAmount, setFixedAmount] = useState('');
+  const [fixedDescription, setFixedDescription] = useState('');
+  const [fixedDay, setFixedDay] = useState(1);
+
+// 가변 수입/지출 모달 상태
+  const [showVariableIncomeModal, setShowVariableIncomeModal] = useState(false);
+  const [variableAmount, setVariableAmount] = useState('');
+  const [variableReason, setVariableReason] = useState('');
+
   const closeModal = () => {
     setModalOpen(false);
     setEditMode(false);
@@ -112,29 +125,137 @@ export default function Dashboard() {
       const storedEmail = localStorage.getItem("userEmail");
       if (storedEmail) {
         setEmail(storedEmail);
-        fetchBalance(storedEmail);
-        fetchBalanceHistory(storedEmail, new Date().getFullYear(), new Date().getMonth() + 1); // ✅ 변경
-        fetchConsumption(storedEmail);
-        fetchHabitual(storedEmail);
       }
     }
   }, []);
 
+  useEffect(() => {
+    if (email) { // email이 세팅된 다음에만 실행
+      fetchBalance(email);
+      fetchBalanceHistory(email, new Date().getFullYear(), new Date().getMonth() + 1);
+      fetchConsumption(email);
+      fetchHabitual(email);
+      fetchFixedIncomes(email);
+    }
+  }, [email]); // email 변화 감지
+
+
 
   const fetchBalance = async (email) => {
     try {
-      const res = await fetch(`http://localhost:8081/api/finance/balance?email=${email}`);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("❌ 토큰 없음");
+        return;
+      }
+
+      const res = await fetch(`http://localhost:8081/api/finance/balance?email=${email}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
       if (res.status === 404) {
         setShowInitialBalanceModal(true);
         return;
       }
-      const data = await res.json();
+
+      const text = await res.text();
+      if (!text) {
+        console.warn("⚠️ 서버 응답 비어있음");
+        return;
+      }
+      const data = JSON.parse(text);
+
       setBalance(data.totalAmount);
       setLastUpdated(data.lastUpdated);
     } catch (e) {
       console.error("잔고 조회 실패", e);
     }
   };
+
+
+
+
+  const saveFixedIncome = async () => {
+    if (!email) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("로그인 정보가 없습니다.");
+      return;
+    }
+
+    const payload = {
+      email,
+      description: fixedDescription,
+      amount: parseInt(fixedAmount),
+      dayOfMonth: parseInt(fixedDay),
+    };
+
+    try {
+      const res = await fetch(`http://localhost:8081/api/finance/fixed-income/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`, // ✅ 토큰 추가
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("고정 수입 저장 실패");
+
+      alert("고정 수입이 등록되었습니다.");
+      setShowFixedIncomeModal(false);
+      setFixedAmount('');
+      setFixedDescription('');
+      setFixedDay(1);
+      fetchBalance(email); // 잔고 갱신
+      fetchFixedIncomes(email); // 고정 수입 갱신
+    } catch (e) {
+      alert("고정 수입 저장 오류");
+    }
+  };
+
+
+  const saveVariableIncome = async () => {
+    if (!email) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("로그인 정보가 없습니다.");
+      return;
+    }
+
+    const payload = {
+      email,
+      reason: variableReason,
+      amountChange: parseInt(variableAmount),
+    };
+
+    try {
+      const res = await fetch(`http://localhost:8081/api/finance/balance/change`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`, // ✅ 토큰 추가
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("가변 수입/지출 저장 실패");
+
+      alert("변동 수입/지출이 반영되었습니다.");
+      setShowVariableIncomeModal(false);
+      setVariableReason('');
+      setVariableAmount('');
+      fetchBalance(email); // 잔고 갱신
+    } catch (e) {
+      alert("변동 수입/지출 저장 오류");
+    }
+  };
+
+
   const handleAddConsumption = async () => {
     if (!email || !newItem || !newAmount || !newPlace || !newTime || !selectedDate) {
       alert("모든 항목을 입력해주세요.");
@@ -219,8 +340,21 @@ export default function Dashboard() {
 
   const fetchBalanceHistory = async (email, year, month) => {
     try {
-      const res = await fetch(`http://localhost:8081/api/finance/balance/history?email=${email}&year=${year}&month=${month}`);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("❌ 토큰 없음");
+        return;
+      }
+
+      const res = await fetch(`http://localhost:8081/api/finance/balance/history?email=${email}&year=${year}&month=${month}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
       if (!res.ok) throw new Error("불러오기 실패");
+
       const data = await res.json();
 
       if (Array.isArray(data)) {
@@ -234,6 +368,7 @@ export default function Dashboard() {
       setBalanceHistory([]);               // 네트워크 에러 fallback
     }
   };
+
 
 
 
@@ -298,6 +433,28 @@ export default function Dashboard() {
       alert("잔고 변경 실패");
     }
   };
+  const fetchFixedIncomes = async (email) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const res = await fetch(`http://localhost:8081/api/finance/fixed-income?email=${email}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",  // ✅ 추가
+        },
+      });
+
+      if (!res.ok) throw new Error("고정 수입 불러오기 실패");
+
+      const data = await res.json();
+      setFixedIncomes(data);
+    } catch (e) {
+      console.error("고정 수입 조회 실패", e);
+      setFixedIncomes([]); // 실패 시 빈 배열
+    }
+  };
+
 
   const openHistoryPopup = () => setShowBalancePopup(true);
   const closeHistoryPopup = () => setShowBalancePopup(false);
@@ -353,35 +510,59 @@ export default function Dashboard() {
         </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <input
-                type="text"
-                placeholder="사유 (ex. 월급)"
-                className="border px-3 py-2 rounded text-black"
-                value={manualReason}
-                onChange={(e) => setManualReason(e.target.value)}
-            />
-            <input
-                type="number"
-                placeholder="금액 변경 (+/-)"
-                className="border px-3 py-2 rounded text-black"
-                value={manualAmount}
-                onChange={(e) => setManualAmount(e.target.value)}
-            />
+          <div className="flex gap-2 mt-4">
             <button
-                onClick={handleManualBalanceChange}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded px-3 py-2 font-semibold"
+                className="bg-green-600 hover:bg-green-700 text-white rounded px-3 py-2 text-sm font-medium"
+                onClick={() => setShowFixedIncomeModal(true)}
             >
-              수입 지출 변경
+              고정 수입 등록 및 관리
             </button>
-
+            <button
+                className="bg-purple-600 hover:bg-purple-700 text-white rounded px-3 py-2 text-sm font-medium"
+                onClick={() => setShowVariableIncomeModal(true)}
+            >
+              가변 수입/지출 추가
+            </button>
           </div>
+
+
           <button
               onClick={openHistoryPopup}
               className="mt-4 text-sm text-blue-500 underline hover:text-blue-700"
           >
             월별 잔고 이력 보기
           </button>
+          {/* 📆 이번 달 고정 수입 */}
+          <div className="mt-6">
+            <h3 className="text-md font-semibold mb-2 text-gray-800">📆 이번 달 고정 수입</h3>
+            {fixedIncomes.length === 0 ? (
+                <p className="text-sm text-gray-500">등록된 고정 수입이 없습니다.</p>
+            ) : (
+                <ul className="space-y-2">
+                  {fixedIncomes.map((income) => (
+                      <li
+                          key={income.id}
+                          className="flex flex-wrap items-center gap-x-2 border-b pb-1 text-sm text-gray-800"
+                      >
+                        <span className="font-semibold">{income.description}</span>
+                        <span className="text-gray-500">{income.dayOfMonth}일</span>
+                        <span
+                            className={`font-semibold ${
+                                income.status === "반영완료" ? "text-green-500" : "text-orange-500"
+                            }`}
+                        >
+        [{income.status}]
+      </span>
+                        <span className="text-green-600 font-bold">
+        ₩{income.amount.toLocaleString()}
+      </span>
+                      </li>
+                  ))}
+                </ul>
+
+            )}
+          </div>
+
 
           <button
               onClick={() => setShowInitialBalanceModal(true)}
@@ -409,7 +590,7 @@ export default function Dashboard() {
                       }}
                       className="border rounded px-2 py-1 text-sm text-black"
                   >
-                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                  {Array.from({length: 5}, (_, i) => new Date().getFullYear() - i).map((y) => (
                         <option key={y} value={y}>{y}년</option>
                     ))}
                   </select>
@@ -685,7 +866,51 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
+
         )}
+        {/* ✅ 고정 수입 모달 */}
+        {showFixedIncomeModal && (
+            <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+              <div className="bg-white rounded-xl p-6 w-[400px] text-black relative">
+                <h2 className="text-lg font-bold mb-4">📅 고정 수입 등록</h2>
+                <input type="text" placeholder="수입 설명" className="w-full mb-2 px-3 py-2 border rounded"
+                       value={fixedDescription} onChange={e => setFixedDescription(e.target.value)}/>
+                <input type="number" placeholder="금액" className="w-full mb-2 px-3 py-2 border rounded"
+                       value={fixedAmount} onChange={e => setFixedAmount(e.target.value)}/>
+                <select
+                    className="w-full mb-4 px-3 py-2 border rounded text-black"
+                    value={fixedDay}
+                    onChange={e => setFixedDay(e.target.value)}
+                >
+                  {Array.from({length: 31}, (_, i) => (
+                      <option key={i + 1} value={i + 1}>{i + 1}일</option>
+                  ))}
+                </select>
+
+                <div className="flex justify-between">
+                  <button onClick={() => setShowFixedIncomeModal(false)} className="bg-gray-300 px-4 py-2 rounded">취소
+                  </button>
+                  <button onClick={saveFixedIncome} className="bg-blue-600 text-white px-4 py-2 rounded">저장</button>
+                </div>
+              </div>
+            </div>
+        )}
+
+        {/* ✅ 가변 수입/지출 모달 */}
+        {showVariableIncomeModal && (
+            <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+              <div className="bg-white rounded-xl p-6 w-[400px] text-black relative">
+                <h2 className="text-lg font-bold mb-4">💸 가변 수입/지출 입력</h2>
+                <input type="text" placeholder="사유 (ex. 보너스)" className="w-full mb-2 px-3 py-2 border rounded" value={variableReason} onChange={e => setVariableReason(e.target.value)} />
+                <input type="number" placeholder="금액 (+수입 / -지출)" className="w-full mb-4 px-3 py-2 border rounded" value={variableAmount} onChange={e => setVariableAmount(e.target.value)} />
+                <div className="flex justify-between">
+                  <button onClick={() => setShowVariableIncomeModal(false)} className="bg-gray-300 px-4 py-2 rounded">취소</button>
+                  <button onClick={saveVariableIncome} className="bg-blue-600 text-white px-4 py-2 rounded">등록</button>
+                </div>
+              </div>
+            </div>
+        )}
+
 
 
 
