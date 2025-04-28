@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const email = searchParams.get("email") || "";
@@ -43,6 +43,44 @@ export default function ResetPasswordPage() {
         }
     };
 
+    return (
+        <div className="bg-white p-10 rounded-lg shadow-lg w-full max-w-md">
+            <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">비밀번호 재설정</h1>
+
+            {message && <div className="mb-4 text-red-500 text-sm text-center">{message}</div>}
+
+            <form onSubmit={handleResetPassword} className="space-y-4">
+                <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="새 비밀번호를 입력해주세요"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none text-black focus:ring-2 focus:ring-blue-500"
+                    required
+                />
+
+                <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="새 비밀번호 확인"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none text-black focus:ring-2 focus:ring-blue-500"
+                    required
+                />
+
+                <button
+                    type="submit"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
+                >
+                    비밀번호 재설정
+                </button>
+            </form>
+        </div>
+    );
+}
+
+export default function ResetPasswordPage() {
+    const router = useRouter();
 
     return (
         <main className="min-h-screen bg-gray-100 flex flex-col">
@@ -51,38 +89,9 @@ export default function ResetPasswordPage() {
             </header>
 
             <section className="flex flex-1 items-center justify-center p-6">
-                <div className="bg-white p-10 rounded-lg shadow-lg w-full max-w-md">
-                    <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">비밀번호 재설정</h1>
-
-                    {message && <div className="mb-4 text-red-500 text-sm text-center">{message}</div>}
-
-                    <form onSubmit={handleResetPassword} className="space-y-4">
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="새 비밀번호를 입력해주세요"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none text-black focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-
-                        <input
-                            type="password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder="새 비밀번호 확인"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none text-black focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-
-                        <button
-                            type="submit"
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
-                        >
-                            비밀번호 재설정
-                        </button>
-                    </form>
-                </div>
+                <Suspense fallback={<div>로딩 중...</div>}>
+                    <ResetPasswordForm />
+                </Suspense>
             </section>
         </main>
     );
