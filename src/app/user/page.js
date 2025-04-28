@@ -149,7 +149,7 @@ export default function Dashboard() {
         return;
       }
 
-      const res = await fetch(`http://localhost:8081/api/finance/balance?email=${email}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/finance/balance?email=${email}`, {
         headers: {
           "Authorization": `Bearer ${token}`,
         },
@@ -194,7 +194,7 @@ export default function Dashboard() {
     };
 
     try {
-      const res = await fetch(`http://localhost:8081/api/finance/fixed-income/add`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/finance/fixed-income/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -234,7 +234,7 @@ export default function Dashboard() {
     };
 
     try {
-      const res = await fetch(`http://localhost:8081/api/finance/balance/change`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/finance/balance/change`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -271,7 +271,7 @@ export default function Dashboard() {
     };
 
     try {
-      const res = await fetch(`http://localhost:8081/api/consumption/post`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/consumption/post`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -291,7 +291,7 @@ export default function Dashboard() {
     if (!confirm("정말 삭제하시겠습니까?")) return;
 
     try {
-      const res = await fetch(`http://localhost:8081/api/consumption/delete/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/consumption/delete/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("삭제 실패");
@@ -320,7 +320,7 @@ export default function Dashboard() {
     };
 
     try {
-      const res = await fetch(`http://localhost:8081/api/consumption/update`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/consumption/update`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -346,7 +346,7 @@ export default function Dashboard() {
         return;
       }
 
-      const res = await fetch(`http://localhost:8081/api/finance/balance/history?email=${email}&year=${year}&month=${month}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/finance/balance/history?email=${email}&year=${year}&month=${month}`, {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -375,7 +375,7 @@ export default function Dashboard() {
 
   const fetchConsumption = async (email) => {
     try {
-      const res = await fetch(`http://localhost:8081/api/consumption/check?email=${email}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/consumption/check?email=${email}`);
       const data = await res.json();
       const grouped = {};
       data.forEach(item => {
@@ -397,7 +397,7 @@ export default function Dashboard() {
 
   const fetchHabitual = async (email) => {
     try {
-      const res = await fetch(`http://localhost:8081/api/consumption/analysis?email=${email}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/consumption/analysis?email=${email}`);
       const data = await res.json();
       const habituals = data.filter(d => d.habitual);
       if (habituals.length > 0) {
@@ -414,7 +414,7 @@ export default function Dashboard() {
   const handleManualBalanceChange = async () => {
     if (!email) return;
     try {
-      const res = await fetch("http://localhost:8081/api/finance/balance/change", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/finance/balance/change`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -433,12 +433,13 @@ export default function Dashboard() {
       alert("잔고 변경 실패");
     }
   };
+
   const fetchFixedIncomes = async (email) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const res = await fetch(`http://localhost:8081/api/finance/fixed-income?email=${email}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/finance/fixed-income?email=${email}`, {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",  // ✅ 추가
@@ -833,7 +834,7 @@ export default function Dashboard() {
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-semibold"
                     onClick={async () => {
                       try {
-                        const res = await fetch(`http://localhost:8081/api/finance/balance/init?email=${email}&initialAmount=${manualAmount}`, {
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/finance/balance/init?email=${email}&initialAmount=${manualAmount}`, {
                           method: "POST",
                         });
 
