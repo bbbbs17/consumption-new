@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@RestController
+
+
+@RestController@CrossOrigin(origins = {"http://localhost:3000", "http://223.130.136.121:3000"})
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class PasswordResetController {
