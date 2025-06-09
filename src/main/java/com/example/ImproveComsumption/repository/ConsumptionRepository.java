@@ -1,6 +1,6 @@
 package com.example.ImproveComsumption.repository;
 
-import com.example.ImproveComsumption.model.Consumption;
+import com.example.ImproveComsumption.domain.Consumption;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 

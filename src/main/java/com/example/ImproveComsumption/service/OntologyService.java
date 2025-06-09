@@ -1,6 +1,6 @@
 package com.example.ImproveComsumption.service;
 
-import com.example.ImproveComsumption.model.Consumption;
+import com.example.ImproveComsumption.domain.Consumption;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.reasoner.Reasoner;

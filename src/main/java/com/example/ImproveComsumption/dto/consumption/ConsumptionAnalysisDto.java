@@ -12,7 +12,13 @@ import java.time.LocalDateTime;
 public class ConsumptionAnalysisDto {
     private LocalDateTime dateTime;
     private String item;
-    private String place;
+    private String placeName;  // 장소명 (예: 스타벅스 판교점)
+
+    private String address;    // 도로명 주소 또는 지번주소
+
+    private Double latitude;   // 위도
+
+    private Double longitude;  // 경도
     private int amount;
     private boolean habitual; // 습관 소비 여부
 }

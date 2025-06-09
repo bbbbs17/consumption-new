@@ -1,6 +1,6 @@
 package com.example.ImproveComsumption.service;
 
-import com.example.ImproveComsumption.model.Consumption;
+import com.example.ImproveComsumption.domain.Consumption;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;

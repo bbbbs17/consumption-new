@@ -11,14 +11,14 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * 🔹 Spring Security 설정 - JWT + OAuth2 적용
- */
+import static org.springframework.security.config.Customizer.withDefaults;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -32,37 +32,45 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // ✅ CSRF 비활성화 (JWT 사용 시 필요)
-                .cors(cors -> cors.configure(http)) // ✅ CORS 허용 설정
-                .sessionManagement(session -> session.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS)) // ✅ 세션 사용 X (JWT 사용)
+                .csrf(csrf -> csrf.disable())
+                .cors(withDefaults())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/","/api/game/save","/api/game/questions","/api/game/stats", "/login","/api/practice/repeats/detail","/api/practice/progress","/api/practice/save", "/register","api/**", "/api/user/register", "/success", "/auth/login", "/oauth2/**","/auth/oauth/google/**","/api/user/**","/api/user/check","/auth/**","/check-in/**","/api/**").permitAll() // ✅ 로그인, 회원가입은 모두 허용
-                        .anyRequest().authenticated() // ✅ 나머지는 인증 필요
+                        .requestMatchers(
+                                "/", "/login", "/register",
+                                "/api/game/save", "/api/game/questions", "/api/game/stats",
+                                "/api/practice/repeats/detail", "/api/practice/progress", "/api/practice/save",
+                                "/api/user/register", "/api/user/check", "/api/user/**",
+                                "/auth/**", "/auth/login", "/auth/oauth/google/**",
+                                "/check-in/**", "/api/**", "/oauth2/**", "/success"
+                        ).permitAll()
+                        .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint((request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
+                        )
                 )
-                // ✅ JWT 필터 추가 (인증)
-                .addFilterBefore(new JwtAuthenticationFilter(authenticationManager(http.getSharedObject(AuthenticationConfiguration.class)), jwtUtil, customUserDetailsService),
-                        UsernamePasswordAuthenticationFilter.class)
-                // ✅ JWT 필터 추가 (권한 검증)
-                .addFilterBefore(new JwtAuthorizationFilter(jwtUtil, customUserDetailsService),
-                        UsernamePasswordAuthenticationFilter.class)
-                // ✅ OAuth2 로그인 설정 추가
+                // ✅ 먼저 JwtAuthorizationFilter에서 로그인, 회원가입은 제외 처리
+                .addFilterBefore(
+                        new JwtAuthorizationFilter(jwtUtil, customUserDetailsService),
+                        UsernamePasswordAuthenticationFilter.class
+                )
+                .addFilterBefore(
+                        new JwtAuthenticationFilter(authenticationManager(http.getSharedObject(AuthenticationConfiguration.class)), jwtUtil, customUserDetailsService),
+                        UsernamePasswordAuthenticationFilter.class
+                )
                 .oauth2Login(oauth2 -> oauth2
-                        .loginPage("/login") // OAuth2 로그인 페이지 지정
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService)) // OAuth2 사용자 정보 처리
-                        .successHandler(oAuth2SuccessHandler) // 로그인 성공 후 JWT 발급
+                        .loginPage("/login")
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .successHandler(oAuth2SuccessHandler)
                 );
 
         return http.build();
     }
 
-
-
-    // ✅ AuthenticationManager Bean 등록 (JWT 인증에 필요)
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 }

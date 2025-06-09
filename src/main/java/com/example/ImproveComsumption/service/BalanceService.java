@@ -24,6 +24,7 @@ public class BalanceService {
     private final BalanceRepository balanceRepository;
     private final BalanceHistoryRepository balanceHistoryRepository;
     private final FixedIncomeRepository fixedIncomeRepository;
+    private final FixedExpenseRepository fixedExpenseRepository;
 
     @Transactional(readOnly = true)
     public BalanceDto getBalanceByEmail(String email) {
@@ -31,8 +32,7 @@ public class BalanceService {
         Balance balance = balanceRepository.findByMember(member)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "잔고 정보 없음"));
 
-        applyFixedIncomesIfNeeded(member, balance); // 고정 수입 자동 반영
-
+        applyFixedIncomesAndExpensesIfNeeded(member, balance);
         return new BalanceDto(balance.getTotalAmount(), balance.getLastUpdated());
     }
 
@@ -71,8 +71,7 @@ public class BalanceService {
 
         int currentBalance = balanceRepository.findByMember(member)
                 .map(Balance::getTotalAmount)
-                .orElse(0);  // balance 없으면 0
-
+                .orElse(0);
 
         return histories.stream()
                 .map(h -> new BalanceHistoryDto(
@@ -103,27 +102,63 @@ public class BalanceService {
         balanceHistoryRepository.save(history);
     }
 
+    @Transactional
+    public void resetInitialBalance(String email, int newAmount) {
+        Member member = findMemberByEmail(email);
+        Balance balance = balanceRepository.findByMember(member)
+                .orElseThrow(() -> new IllegalStateException("잔고 정보 없음"));
+
+        balance.setTotalAmount(newAmount);
+        balance.setLastUpdated(LocalDateTime.now());
+        balanceRepository.save(balance);
+
+        BalanceHistory history = new BalanceHistory();
+        history.setMember(member);
+        history.setAmountChange(newAmount);
+        history.setReason("초기 잔고 재설정");
+        history.setAfterBalance(newAmount);
+        balanceHistoryRepository.save(history);
+    }
+
+    /**
+     * ✅ 소비 발생 시 잔고 차감 및 이력 저장
+     */
+    @Transactional
+    public void applyConsumption(Member member, int consumptionAmount, String item) {
+        Balance balance = balanceRepository.findByMember(member)
+                .orElseThrow(() -> new IllegalStateException("잔고 정보 없음"));
+
+        if (balance.getTotalAmount() < consumptionAmount) {
+            throw new IllegalStateException("잔고가 부족합니다. 먼저 잔고를 설정해주세요!");
+        }
+
+        int newBalance = balance.getTotalAmount() - consumptionAmount;
+        balance.setTotalAmount(newBalance);
+        balance.setLastUpdated(LocalDateTime.now());
+
+        BalanceHistory history = new BalanceHistory();
+        history.setMember(member);
+        history.setAmountChange(-consumptionAmount); // 소비니까 음수
+        history.setReason("[소비] " + item);
+        history.setAfterBalance(newBalance);
+
+        balanceHistoryRepository.save(history);
+    }
+
     private Member findMemberByEmail(String email) {
         return memberRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
     }
 
-    // 고정 수입 자동 반영 로직 (수정 완료)
-    private void applyFixedIncomesIfNeeded(Member member, Balance balance) {
+    private void applyFixedIncomesAndExpensesIfNeeded(Member member, Balance balance) {
         LocalDate today = LocalDate.now();
-        List<FixedIncome> incomes = fixedIncomeRepository.findByMember(member);
 
+        List<FixedIncome> incomes = fixedIncomeRepository.findByMember(member);
         for (FixedIncome income : incomes) {
             LocalDate createdDate = income.getCreatedAt();
             int incomeDay = income.getDayOfMonth();
-
-            boolean registeredBeforeThisMonth = !createdDate.isAfter(today.withDayOfMonth(1));
-            boolean shouldApplyToday = today.getDayOfMonth() == incomeDay;
-            boolean shouldApplyBeforeToday = today.getDayOfMonth() > incomeDay;
-
-            if (!registeredBeforeThisMonth) continue;
-            if (shouldApplyBeforeToday) continue;
-            if (!shouldApplyToday) continue;
+            if (createdDate.isAfter(today.withDayOfMonth(1))) continue;
+            if (today.getDayOfMonth() < incomeDay) continue;
 
             boolean alreadyAdded = balanceHistoryRepository.existsByMemberAndReasonAndCreatedAtBetween(
                     member,
@@ -142,27 +177,75 @@ public class BalanceService {
             history.setAmountChange(income.getAmount());
             history.setReason("[고정수입] " + income.getDescription());
             history.setAfterBalance(newBalance);
+            balanceHistoryRepository.save(history);
+        }
 
+        List<FixedExpense> expenses = fixedExpenseRepository.findByMember(member);
+        for (FixedExpense expense : expenses) {
+            LocalDate createdDate = expense.getCreatedAt();
+            int expenseDay = expense.getDayOfMonth();
+            if (createdDate.isAfter(today.withDayOfMonth(1))) continue;
+            if (today.getDayOfMonth() < expenseDay) continue;
+
+            boolean alreadyAdded = balanceHistoryRepository.existsByMemberAndReasonAndCreatedAtBetween(
+                    member,
+                    "[고정지출] " + expense.getDescription(),
+                    today.withDayOfMonth(1).atStartOfDay(),
+                    today.withDayOfMonth(1).plusMonths(1).atStartOfDay()
+            );
+            if (alreadyAdded) continue;
+
+            int expenseAmount = -expense.getAmount();
+            int newBalance = balance.getTotalAmount() + expenseAmount;
+            balance.setTotalAmount(newBalance);
+            balance.setLastUpdated(LocalDateTime.now());
+
+            BalanceHistory history = new BalanceHistory();
+            history.setMember(member);
+            history.setAmountChange(expenseAmount);
+            history.setReason("[고정지출] " + expense.getDescription());
+            history.setAfterBalance(newBalance);
             balanceHistoryRepository.save(history);
         }
     }
-
     @Transactional
-    public void resetInitialBalance(String email, int newAmount) {
-        Member member = findMemberByEmail(email);
+    public void recoverConsumption(Member member, int amount, String item, ConsumptionType type) {
         Balance balance = balanceRepository.findByMember(member)
                 .orElseThrow(() -> new IllegalStateException("잔고 정보 없음"));
 
-        balance.setTotalAmount(newAmount);
+        int sign = (type == ConsumptionType.EXPENSE) ? +amount : -amount;
+        int updatedAmount = balance.getTotalAmount() + sign;
+        balance.setTotalAmount(updatedAmount);
         balance.setLastUpdated(LocalDateTime.now());
-        balanceRepository.save(balance);
 
         BalanceHistory history = new BalanceHistory();
         history.setMember(member);
-        history.setAmountChange(newAmount);
-        history.setReason("초기 잔고 재설정");
-        history.setAfterBalance(newAmount);
+        history.setAmountChange(sign);
+        history.setReason("[소비 삭제 복구] " + item);
+        history.setAfterBalance(updatedAmount);
 
         balanceHistoryRepository.save(history);
     }
+
+    /**
+     * ✅ 수입 발생 시 잔고 증가 및 이력 저장
+     */
+    @Transactional
+    public void applyIncome(Member member, int incomeAmount, String item) {
+        Balance balance = balanceRepository.findByMember(member)
+                .orElseThrow(() -> new IllegalStateException("잔고 정보 없음"));
+
+        int newBalance = balance.getTotalAmount() + incomeAmount;
+        balance.setTotalAmount(newBalance);
+        balance.setLastUpdated(LocalDateTime.now());
+
+        BalanceHistory history = new BalanceHistory();
+        history.setMember(member);
+        history.setAmountChange(incomeAmount); // 수입은 양수
+        history.setReason("[수입] " + item);
+        history.setAfterBalance(newBalance);
+
+        balanceHistoryRepository.save(history);
+    }
+
 }

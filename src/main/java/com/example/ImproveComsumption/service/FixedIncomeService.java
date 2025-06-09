@@ -72,6 +72,20 @@ public class FixedIncomeService {
     }
 
     @Transactional
+    public void updateFixedIncome(Long id, FixedIncomeRequestDto dto) {
+        FixedIncome income = fixedIncomeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 고정 수입이 존재하지 않습니다."));
+
+        // ⛔ member는 수정하지 않음!
+        income.setAmount(dto.getAmount());
+        income.setDescription(dto.getDescription());
+        income.setDayOfMonth(dto.getDayOfMonth());
+
+        // save() 호출도 생략 가능 (영속 상태면 자동 반영됨)
+    }
+
+
+    @Transactional
     public void deleteFixedIncome(Long id) {
         fixedIncomeRepository.deleteById(id);
     }

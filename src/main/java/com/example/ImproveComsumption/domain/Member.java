@@ -1,7 +1,6 @@
 package com.example.ImproveComsumption.domain;
 
 
-import com.example.ImproveComsumption.model.Consumption;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
