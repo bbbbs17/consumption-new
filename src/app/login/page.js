@@ -1,108 +1,164 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Separator } from "@/components/ui/separator"
+import { PiggyBank, LogIn, Chrome } from "lucide-react"
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [rememberMe, setRememberMe] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState("")
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
+    setIsLoading(true)
+    setMessage("")
+
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-      });
+      })
 
-      const data = await res.json();
+      const data = await res.json()
 
       if (!res.ok) {
-        alert(data.message || "로그인 실패");
-        return;
+        setMessage(data.message || "로그인 실패")
+        return
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("userEmail", data.email);
+      localStorage.setItem("token", data.token)
+      localStorage.setItem("userEmail", data.email)
 
-      alert("로그인 성공!");
-      router.push("/user");
+      router.push("/user")
     } catch (err) {
-      alert("서버 오류 발생. 다시 시도하세요.");
+      setMessage("서버 오류 발생. 다시 시도하세요.")
+    } finally {
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleGoogleLogin = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE}/oauth2/authorization/google`;
-  };
+    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE}/oauth2/authorization/google`
+  }
 
   return (
-      <main className="min-h-screen bg-gray-100 flex flex-col">
-        <header className="w-full p-4 bg-white shadow-md">
-          <div
-              className="text-2xl font-bold text-gray-800 text-center cursor-pointer"
-              onClick={() => router.push("/")}
-          >
-            소비분석 캘린더
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        {/* Header */}
+        <header className="bg-white border-b border-slate-200 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-3 cursor-pointer" onClick={() => router.push("/")}>
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <PiggyBank className="w-5 h-5 text-white" />
+                </div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  AI 소비 도우미
+                </h1>
+              </div>
+              <Button variant="outline" onClick={() => router.push("/signup")}>
+                회원가입
+              </Button>
+            </div>
           </div>
         </header>
 
-        <section className="flex flex-1 items-center justify-center">
-          <div className="bg-white p-10 rounded-lg shadow-lg w-full max-w-md">
-            <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">로그인</h1>
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="이메일을 입력해주세요"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                  required
-              />
-              <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="비밀번호를 입력해주세요"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                  required
-              />
-              <div className="flex items-center space-x-2 text-sm">
-                <input type="checkbox" id="rememberMe" className="w-4 h-4" />
-                <label htmlFor="rememberMe" className="text-gray-600">
-                  아이디 저장
-                </label>
+        {/* Main Content */}
+        <main className="flex flex-1 items-center justify-center p-6 min-h-[calc(100vh-4rem)]">
+          <Card className="w-full max-w-md border-0 shadow-xl">
+            <CardHeader className="text-center space-y-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto">
+                <LogIn className="w-8 h-8 text-white" />
               </div>
-              <button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
-              >
-                로그인
-              </button>
-            </form>
+              <CardTitle className="text-2xl font-bold">로그인</CardTitle>
+              <CardDescription>계정에 로그인하여 소비 분석을 시작하세요</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {message && (
+                  <div className="p-3 rounded-lg text-sm text-center bg-red-50 text-red-600 border border-red-200">
+                    {message}
+                  </div>
+              )}
 
-            <div className="my-6 border-t border-gray-300"></div>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">이메일</Label>
+                  <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="이메일을 입력해주세요"
+                      required
+                  />
+                </div>
 
-            <button
-                onClick={handleGoogleLogin}
-                className="w-full bg-black hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-lg"
-            >
-              구글로 간편 로그인
-            </button>
+                <div className="space-y-2">
+                  <Label htmlFor="password">비밀번호</Label>
+                  <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="비밀번호를 입력해주세요"
+                      required
+                  />
+                </div>
 
-            <div className="flex justify-between text-sm text-gray-500 mt-6">
-              <a href="/signup" className="hover:underline">
-                회원가입
-              </a>
-              <a href="/forgot-password" className="hover:underline">
-                비밀번호 찾기
-              </a>
-            </div>
-          </div>
-        </section>
-      </main>
-  );
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="rememberMe" checked={rememberMe} onCheckedChange={setRememberMe} />
+                  <Label htmlFor="rememberMe" className="text-sm text-gray-600">
+                    아이디 저장
+                  </Label>
+                </div>
+
+                <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    disabled={isLoading}
+                >
+                  {isLoading ? "로그인 중..." : "로그인"}
+                </Button>
+              </form>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-gray-500">또는</span>
+                </div>
+              </div>
+
+              <Button onClick={handleGoogleLogin} variant="outline" className="w-full border-gray-300 hover:bg-gray-50">
+                <Chrome className="w-4 h-4 mr-2" />
+                구글로 간편 로그인
+              </Button>
+
+              <div className="flex justify-between text-sm">
+                <button onClick={() => router.push("/signup")} className="text-blue-600 hover:underline font-medium">
+                  회원가입
+                </button>
+                <button
+                    onClick={() => router.push("/forgot-password")}
+                    className="text-blue-600 hover:underline font-medium"
+                >
+                  비밀번호 찾기
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+  )
 }
