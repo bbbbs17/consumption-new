@@ -91,4 +91,5 @@ Spring Boot 3 기반으로 구현되었으며, 소비 등록, 소비 분석, 온
 
 └── application.yml
     프로젝트 전역 설정 파일 (DB, 보안, 외부 API 등)
+    
 ---
