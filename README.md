@@ -1,4 +1,4 @@
-<img width="833" alt="스크린샷 2025-06-10 오전 12 23 10" src="https://github.com/user-attachments/assets/893776d6-21e2-4140-87e1-c817f49028ad" />## 💳 Consumption Insight - AI 소비 습관 분석 및 개선 시스템 (백엔드)
+## 💳 Consumption Insight - AI 소비 습관 분석 및 개선 시스템 (백엔드)
 단순 지출 내역을 넘어, 사용자의 소비 패턴을 의미 단위로 분석하고 절약 방안을 제시하는 소비 습관 분석 백엔드 REST API 서버입니다.
 Spring Boot 3 기반으로 구현되었으며, 소비 등록, 소비 분석, 온톨로지 기반 구조 설계 등 사용자 중심 분석 기능을 제공합니다.
 
@@ -95,5 +95,15 @@ Spring Boot 3 기반으로 구현되었으며, 소비 등록, 소비 분석, 온
     
 ---
 
+## 🧩 데이터베이스 ERD 구조
 
-![Uploading 스크린샷 2025-06-10 오전 12.23.10.png…]()
+> 주요 테이블 간 관계를 나타낸 ERD입니다. (MySQL 기준)
+
+<img width="838" alt="스크린샷 2025-06-10 오전 12 24 26" src="https://github.com/user-attachments/assets/016fd793-2cfa-421c-ae29-df83280cccbc" />
+
+---
+
+<img width="1756" alt="스크린샷 2025-06-10 오전 12 24 52" src="https://github.com/user-attachments/assets/b1c301ec-b5a8-4c5a-b988-a1a94ab8eb95" />
+<img width="1484" alt="스크린샷 2025-06-10 오전 12 25 26" src="https://github.com/user-attachments/assets/70cab64e-5773-4f40-a1a7-cd912bc122aa" />
+<img width="1448" alt="스크린샷 2025-06-10 오전 12 25 42" src="https://github.com/user-attachments/assets/6c0edcd0-444f-44e9-9156-915ef2767f6f" />
+
