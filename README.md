@@ -103,7 +103,19 @@ Spring Boot 3 기반으로 구현되었으며, 소비 등록, 소비 분석, 온
 
 ---
 
+# AI 소비 도우미
+
+AI 기반 소비 패턴 분석 웹 서비스입니다. 
+소비를 기록하고, 습관을 분석하여 개인화된 소비 인사이트를 제공합니다.
+
+## 📸 메인 화면
+
+### 홈화면
 <img width="1756" alt="스크린샷 2025-06-10 오전 12 24 52" src="https://github.com/user-attachments/assets/b1c301ec-b5a8-4c5a-b988-a1a94ab8eb95" />
+
+### 대시보드 화면
 <img width="1484" alt="스크린샷 2025-06-10 오전 12 25 26" src="https://github.com/user-attachments/assets/70cab64e-5773-4f40-a1a7-cd912bc122aa" />
+
+### 소비 내역 및 차트
 <img width="1448" alt="스크린샷 2025-06-10 오전 12 25 42" src="https://github.com/user-attachments/assets/6c0edcd0-444f-44e9-9156-915ef2767f6f" />
 
